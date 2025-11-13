@@ -35,6 +35,7 @@ class SqlAlchemyStudentRepository(StudentRepository):
             self._map_domain_to_orm_ziel(ziel_domain) for ziel_domain in student.ziele
         ]
 
+        self.session.commit()
 
     def find_by_id(self, student_id: int) -> Optional[Student]:
         print(f"Suche Student {student_id} in der PostgreSQL-DB.")

@@ -1,8 +1,6 @@
-# application_services.py
-from datetime import date
 from src.model import (
-    Student, StudentRepository,
-    Notenziel, Zeitziel, ModulStatus
+    StudentRepository,
+    ModulStatus
 )
 
 class DashboardService:
@@ -10,20 +8,6 @@ class DashboardService:
 
     def __init__(self, student_repo: StudentRepository):
         self.repo = student_repo
-
-    def _berechne_notendurchschnitt_text(self, student: Student) -> str:
-        durchschnitt = student.berechne_notendurchschnitt()
-        return f"{durchschnitt:.1f}" if durchschnitt is not None else "N/A"
-
-    def _format_zeitziel_status(self, student: Student, ziel: Zeitziel) -> str:
-        tage_im_studium = (date.today() - student.studienbeginn).days
-        tage_gesamt = ziel.zieldauer_in_jahren * 365.25
-        tage_verbleibend = tage_gesamt - tage_im_studium
-
-        prozent_verbraucht = (tage_im_studium / tage_gesamt) * 100
-        monate_verbleibend = tage_verbleibend / 30.44
-
-        return f"{100 - prozent_verbraucht:.0f}% verbleibend ({monate_verbleibend:.0f} Monate)"
 
     def get_student_dashboard(self, student_id: int) -> dict:
         """Holt einen Studenten und transformiert ihn in ein View Model (dict)."""
@@ -38,24 +22,25 @@ class DashboardService:
             fortschritt_prozent = round((erreichte_ects / gesamt_ects) * 100)
 
         # Ziele für die View aufbereiten
-        view_ziele = []
-        for ziel in student.ziele:
+        ziele_view_data = student.werte_ziele_aus()
 
-            if isinstance(ziel, Notenziel):
-                status_text = f"Aktuell {self._berechne_notendurchschnitt_text(student)}"
-            elif isinstance(ziel, Zeitziel):
-                status_text = self._format_zeitziel_status(student, ziel)
-
-            view_ziele.append({
-                "beschreibung": ziel.beschreibung,
-                "status": status_text
-            })
-
+        view_ziele = [
+            {
+                "beschreibung": z.beschreibung,
+                "logical_status": z.logical_status,
+                "display_text": z.display_text
+            }
+            for z in ziele_view_data
+        ]
         # Semesterübersicht (nur aktuelles Semester)
-        view_semester_uebersicht = []
+        semester_daten_map = {i: [] for i in range(1, 7)}
+
+        # Füllt die Map mit allen Leistungen
         for leistung in student.leistungen:
-            if leistung.modul.semester == aktuelles_semester:
-                view_semester_uebersicht.append({
+            sem = leistung.modul.semester
+            if sem in semester_daten_map:
+                semester_daten_map[sem].append({
+                    "id": leistung.id,
                     "modul": leistung.modul.bezeichnung,
                     "form": leistung.modul.pruefungsform.value,
                     "note": leistung.note,
@@ -64,13 +49,14 @@ class DashboardService:
 
         # Finales View Model
         student_view_data = {
+            "id": student.id,
             "name": student.name,
             "matrikelnummer": student.matrikelnummer,
             "studiengang": f"{student.studiengang.bezeichnung} ({student.studiengang.abschluss.value})",
             "studienbeginn": student.studienbeginn.strftime("%d.%m.%Y"),
             "aktuelles_semester": aktuelles_semester,
             "ziele": view_ziele,
-            "semester_uebersicht": view_semester_uebersicht,
+            "semester_data": semester_daten_map,
             "fortschritt": {
                 "aktuell_ects": erreichte_ects,
                 "gesamt_ects": gesamt_ects,
@@ -79,3 +65,16 @@ class DashboardService:
         }
 
         return student_view_data
+
+    def note_speichern(self, student_id: int, leistung_id: int, note: float):
+        """
+        Trägt eine Note für eine spezifische Studienleistung ein.
+        """
+        student = self.repo.find_by_id(student_id)
+
+        try:
+            student.note_eintragen(leistung_id, note)
+        except ValueError as e:
+            raise e
+
+        self.repo.save(student)

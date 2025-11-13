@@ -16,6 +16,7 @@ def create_app() -> Flask:
     app = Flask(__name__)
     app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://user:password@localhost:5432/student_db"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config["SECRET_KEY"] = "geheimer-schluessel-fuer-sessions"
     db.init_app(app)
 
     student_repo: StudentRepository = SqlAlchemyStudentRepository(db.session)
@@ -26,7 +27,6 @@ def create_app() -> Flask:
 
         # Befüllt die DB mit Testdaten
         seed_database_sqlalchemy(db.session)
-        db.session.commit()
 
     dashboard_service = DashboardService(student_repo=student_repo)
     controller_instance = DashboardController()

@@ -28,9 +28,10 @@ class ZielStatus(Enum):
 
 @dataclass(frozen=True)
 class ZielBewertung:
-    ziel_id: int
-    status: ZielStatus
-
+    """Bündelt alle Daten für ein ausgewertetes Ziel."""
+    beschreibung: str
+    logical_status: str
+    display_text: str
 
 @dataclass(frozen=True)
 class Studienziel(ABC):
@@ -78,9 +79,42 @@ class Zeitziel(Studienziel):
         return f"Abschluss in {self.zieldauer_in_jahren} Jahren"
 
     def werte_status_aus(self, student: Student) -> ZielStatus:
-        jahre_im_studium = (date.today() - student.studienbeginn).days / 365.25
-        return ZielStatus.ERREICHT if jahre_im_studium <= self.zieldauer_in_jahren else ZielStatus.NICHT_ERREICHT
+        """
+        Wertet das Zeitziel basierend auf einem "Soll-Ist"-Vergleich der ECTS aus.
+        """
 
+        # 1. Soll-Rate berechnen
+        gesamtects = student.studiengang.gesamtects
+        if self.zieldauer_in_jahren <= 0:
+            return ZielStatus.IN_ARBEIT  # Ziel ungültig
+
+        soll_rate_pro_jahr = gesamtects / self.zieldauer_in_jahren
+
+        # 2. Zeit vergangen berechnen
+        tage_im_studium = (date.today() - student.studienbeginn).days
+        jahre_im_studium = tage_im_studium / 365.25
+
+        # 3. Soll- vs. Ist-Stand
+        soll_ects_stand_heute = soll_rate_pro_jahr * jahre_im_studium
+        ist_ects_stand_heute = student.berechne_gesamt_ects()
+
+        # 4. Die "Ampel" definieren
+        differenz = ist_ects_stand_heute - soll_ects_stand_heute
+
+        if differenz >= 0:
+            # Du bist auf Kurs oder voraus
+            return ZielStatus.ERREICHT
+
+        # Du bist im Rückstand. Wie stark?
+        # Wir definieren "Gelb" als einen Puffer von 15 ECTS (ca. ein halbes Semester)
+        pufferzone_ects = 15
+
+        if abs(differenz) <= pufferzone_ects:
+            # Leicht im Rückstand -> Warnung
+            return ZielStatus.IN_ARBEIT
+        else:
+            # Deutlich im Rückstand -> Gefahr
+            return ZielStatus.NICHT_ERREICHT
 
 @dataclass
 class Studiengang:
@@ -117,8 +151,55 @@ class Student:
     leistungen: List[Studienleistung] = field(default_factory=list)
     ziele: List[Studienziel] = field(default_factory=list)
 
+    def _berechne_notendurchschnitt_text(self) -> str:
+        """Private Helper-Methode: Berechnet den Schnitt als String."""
+        durchschnitt = self.berechne_notendurchschnitt()
+        return f"{durchschnitt:.1f}" if durchschnitt is not None else "N/A"
+
+    def _format_zeitziel_status(self, ziel: Zeitziel) -> str:
+        """Private Helper-Methode: Berechnet den Zeitziel-Status als String."""
+        tage_im_studium = (date.today() - self.studienbeginn).days
+        tage_gesamt = ziel.zieldauer_in_jahren * 365.25
+        tage_verbleibend = tage_gesamt - tage_im_studium
+
+        prozent_verbraucht = 0
+        if tage_gesamt > 0:
+            prozent_verbraucht = (tage_im_studium / tage_gesamt) * 100
+
+        monate_verbleibend = 0
+        if tage_verbleibend > 0:
+            monate_verbleibend = tage_verbleibend / 30.44
+
+        return f"{100 - prozent_verbraucht:.0f}% verbleibend ({monate_verbleibend:.0f} Monate)"
+
     def werte_ziele_aus(self) -> List[ZielBewertung]:
-        return [ZielBewertung(ziel.id, ziel.werte_status_aus(self)) for ziel in self.ziele]
+        """
+        Wertet alle Ziele aus und gibt eine Liste von "intelligenten"
+        ZielBewertung-Objekten zurück, die alle Template-Daten enthalten.
+        """
+        view_data_list = []
+        for ziel in self.ziele:
+            # 1. Logischen Status für die Ampel holen
+            logical_status_enum = ziel.werte_status_aus(self)
+            logical_status_str = logical_status_enum.value  # z.B. "Erreicht"
+
+            # 2. Anzeigetext holen (die if/elif-Logik ist jetzt HIER)
+            display_text = ""
+            if isinstance(ziel, Notenziel):
+                display_text = self._berechne_notendurchschnitt_text()
+            elif isinstance(ziel, Zeitziel):
+                display_text = self._format_zeitziel_status(ziel)
+            else:
+                display_text = logical_status_str  # Fallback
+
+            # 3. "Intelligentes" ZielBewertung-Objekt erstellen
+            view_data_list.append(ZielBewertung(
+                beschreibung=ziel.beschreibung,
+                logical_status=logical_status_str,
+                display_text=display_text
+            ))
+
+        return view_data_list
 
     def berechne_gesamt_ects(self) -> int:
         return sum(l.modul.ects_punkte for l in self.leistungen if l.status == ModulStatus.BESTANDEN)
@@ -132,6 +213,32 @@ class Student:
     def berechne_aktuelles_semester(self) -> int:
         return int(sum(l.modul.ects_punkte for l in self.leistungen if l.status == ModulStatus.BESTANDEN)/30)
 
+    def note_eintragen(self, leistung_id: int, note: float):
+        """
+        Trägt eine Note für eine Leistung ein und aktualisiert deren Status.
+        Hier sitzt die Geschäftslogik.
+        """
+
+        # 1. Die richtige Leistung in der Liste finden
+        leistung = next((l for l in self.leistungen if l.id == leistung_id), None)
+
+        if leistung is None:
+            raise ValueError(f"Studienleistung mit ID {leistung_id} nicht gefunden.")
+
+        if leistung.status != ModulStatus.ANGEMELDET:
+            raise ValueError(f"Für diese Leistung wurde bereits eine Note eingetragen.")
+
+        # 2. Die Note validieren und setzen
+        if not (1.0 <= note <= 5.0):
+            raise ValueError("Note muss zwischen 1,0 und 5,0 liegen.")
+
+        leistung.note = note
+
+        # 3. Geschäftslogik: Status basierend auf der Note aktualisieren
+        if 1.0 <= note <= 4.0:
+            leistung.status = ModulStatus.BESTANDEN
+        else:
+            leistung.status = ModulStatus.NICHT_BESTANDEN
 
 class StudentRepository(Protocol):
     def save(self, student: Student) -> None: ...

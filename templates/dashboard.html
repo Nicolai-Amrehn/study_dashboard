@@ -39,42 +39,109 @@
                         <strong>Ziele</strong>
                     </div>
                     <ul class="list-group list-group-flush">
+
                         {% for ziel in student_data.ziele %}
-                            <li class="list-group-item">
-                                {{ ziel.beschreibung }}: <strong>{{ ziel.status }}</strong>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+
+                                <span>{{ ziel.beschreibung }}</span>
+
+                                <span>
+                                    {% set badge_color = 'bg-secondary' %} {% if ziel.logical_status == 'Erreicht' %}
+                                        {% set badge_color = 'bg-success' %} {% elif ziel.logical_status == 'Nicht erreicht' %}
+                                        {% set badge_color = 'bg-danger' %} {% elif ziel.logical_status == 'In Arbeit' %}
+                                        {% set badge_color = 'bg-warning text-dark' %} {% endif %}
+
+                                    <span class="badge {{ badge_color }} rounded-pill">
+                                        {{ ziel.display_text }}
+                                    </span>
+                                </span>
+
                             </li>
                         {% endfor %}
                     </ul>
                 </div>
-
                 <div class="card mb-3">
-                    <div class="card-header">
-                        <strong>Semesterübersicht (aktuell: {{ student_data.aktuelles_semester }}. Semester)</strong>
+            <div class="card-header">
+                <strong>Semesterübersicht</strong>
+            </div>
+
+            <ul class="nav nav-tabs nav-fill" id="semesterTab" role="tablist">
+
+                {% for i in range(1, 7) %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if i == student_data.aktuelles_semester %}active{% endif %}"
+                            id="tab-semester-{{ i }}"
+                            data-bs-toggle="tab"
+                            data-bs-target="#panel-semester-{{ i }}"
+                            type="button"
+                            role="tab"
+                            aria-controls="panel-semester-{{ i }}"
+                            aria-selected="{% if i == student_data.aktuelles_semester %}true{% else %}false{% endif %}"
+                    >
+                        {% if i == student_data.aktuelles_semester %}
+                            Aktuelles Semester
+                        {% else %}
+                            {{ i }}. Semester
+                        {% endif %}
+                    </button>
+                </li>
+                {% endfor %}
+            </ul>
+
+                <div class="tab-content" id="semesterTabContent">
+
+                    {% for i in range(1, 7) %}
+                    <div class="tab-pane fade {% if i == student_data.aktuelles_semester %}show active{% endif %}"
+                         id="panel-semester-{{ i }}"
+                         role="tabpanel"
+                         aria-labelledby="tab-semester-{{ i }}"
+                    >
+                        <div class="card-body p-0">
+                            <table class="table table-striped mb-0">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Modul</th>
+                                        <th scope="col">Prüfungsform</th>
+                                        <th scope="col">Note</th>
+                                        <th scope="col">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in student_data.semester_data[i] %}
+                                    <tr>
+                                        <td>{{ item.modul }}</td>
+                                        <td>{{ item.form }}</td>
+
+                                        {% if item.status == 'ausstehend' %}
+                                            <td colspan="2">
+                                                <form action="/student/{{ student_data.id }}/leistung/{{ item.id }}/note_eintragen"
+                                                      method="POST"
+                                                      class="d-flex">
+
+                                                    <input type="hidden" name="semester" value="{{ i }}">
+                                                    <input type="number" step="0.1" min="1.0" max="5.0"
+                                                           name="note" class="form-control form-control-sm"
+                                                           placeholder="Note (1,0-5,0)" required>
+
+                                                    <button type="submit" class="btn btn-primary btn-sm ms-2">OK</button>
+                                                </form>
+                                            </td>
+                                        {% else %}
+                                            <td>
+                                                {{ item.note if item.note is not none else '—' }}
+                                            </td>
+                                            <td>{{ item.status }}</td>
+                                        {% endif %}
+                                    </tr>
+                                    {% else %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                    <div class="card-body p-0"> <table class="table table-striped mb-0">
-                            <thead>
-                                <tr>
-                                    <th scope="col">Modul</th>
-                                    <th scope="col">Prüfungsform</th>
-                                    <th scope="col">Note</th>
-                                    <th scope="col">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in student_data.semester_uebersicht %}
-                                <tr>
-                                    <td>{{ item.modul }}</td>
-                                    <td>{{ item.form }}</td>
-                                    <td>
-                                        {{ item.note if item.note is not none else '—' }}
-                                    </td>
-                                    <td>{{ item.status }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                    {% endfor %}
                 </div>
+            </div>
 
                 <div class="card text-center">
                     <div class="card-body">
