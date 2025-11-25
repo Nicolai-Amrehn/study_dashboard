@@ -3,16 +3,37 @@ from src.model import (
     ModulStatus
 )
 
+
 class DashboardService:
-    """Implementiert den Use Case 'Studenten-Dashboard anzeigen'."""
+    """
+    Service-Layer für das Dashboard.
+
+    Diese Klasse implementiert den Anwendungsfall (Use Case) 'Studenten-Dashboard anzeigen'.
+    Sie dient als Bindeglied zwischen dem Controller (Web) und der Domain (Model).
+    Ihre Hauptaufgabe ist die Orchestrierung von Datenabruf, Aufbereitung für die View
+    und das Anstoßen von Änderungen.
+    """
 
     def __init__(self, student_repo: StudentRepository):
+        """Initialisiert den Service mit dem notwendigen Repository."""
         self.repo = student_repo
 
     def get_student_dashboard(self, student_id: int) -> dict:
-        """Holt einen Studenten und transformiert ihn in ein View Model (dict)."""
+        """
+        Holt alle notwendigen Daten für einen Studenten und transformiert sie
+        in ein View Model (Dictionary), das direkt vom Frontend (HTML-Template)
+        verwendet werden kann.
+
+        Schritte:
+        1. Laden des Studenten-Aggregats aus der Datenbank.
+        2. Berechnung von aggregierten Werten (ECTS-Summe, Fortschritt in %).
+        3. Aufbereitung der Studienziele für die Anzeige (Ampelsystem).
+        4. Gruppierung der Leistungen nach Semestern für die Tab-Ansicht.
+        """
 
         student = self.repo.find_by_id(student_id)
+
+        # Aggregierte Daten berechnen
         erreichte_ects = student.berechne_gesamt_ects()
         gesamt_ects = student.studiengang.gesamtects
         aktuelles_semester = student.berechne_aktuelles_semester()
@@ -21,7 +42,7 @@ class DashboardService:
         if gesamt_ects > 0:
             fortschritt_prozent = round((erreichte_ects / gesamt_ects) * 100)
 
-        # Ziele für die View aufbereiten
+        # Ziele für die View aufbereiten (Domain-Objekte -> View-Daten)
         ziele_view_data = student.werte_ziele_aus()
 
         view_ziele = [
@@ -32,10 +53,11 @@ class DashboardService:
             }
             for z in ziele_view_data
         ]
-        # Semesterübersicht
+
+        # Semesterübersicht initialisieren (Semester 1 bis 6)
         semester_daten_map = {i: [] for i in range(1, 7)}
 
-        # Füllt die Map mit allen Leistungen
+        # Leistungen den entsprechenden Semestern zuordnen
         for leistung in student.leistungen:
             sem = leistung.modul.semester
             if sem in semester_daten_map:
@@ -47,7 +69,7 @@ class DashboardService:
                     "status": leistung.status.value
                 })
 
-        # Finales View Model
+        # Finales View Model zusammenstellen
         student_view_data = {
             "id": student.id,
             "name": student.name,
@@ -68,13 +90,19 @@ class DashboardService:
 
     def note_speichern(self, student_id: int, leistung_id: int, note: float):
         """
-        Trägt eine Note für eine spezifische Studienleistung ein.
+        Orchestriert den Prozess der Noteneintragung.
+
+        Ablauf:
+        1. Lädt das Student-Aggregat.
+        2. Führt die Geschäftslogik am Domain-Objekt aus (Validierung & Statusänderung).
+        3. Persistiert den geänderten Zustand in der Datenbank.
         """
         student = self.repo.find_by_id(student_id)
 
         try:
             student.note_eintragen(leistung_id, note)
         except ValueError as e:
+            # Reicht Domain-Fehler (z.B. ungültige Note) an den Controller weiter
             raise e
 
         self.repo.save(student)

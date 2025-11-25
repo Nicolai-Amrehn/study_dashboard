@@ -12,21 +12,42 @@ from src.infrastructure.orm_models import (
 
 
 class SqlAlchemyStudentRepository(StudentRepository):
+    """
+    Implementierung des StudentRepository mittels SQLAlchemy.
+
+    Diese Klasse fungiert als Brücke zwischen der Domain-Logik und der Datenbank.
+    Sie kümmert sich um das Mapping von Domain-Objekten zu ORM-Objekten (und umgekehrt)
+    und verwaltet die Transaktionen.
+    """
 
     def __init__(self, db_session: Session):
+        """
+        Initialisiert das Repository mit einer aktiven Datenbank-Session.
+        """
         self.session = db_session
 
     def save(self, student: Student) -> None:
+        """
+        Speichert oder aktualisiert einen Studenten in der Datenbank.
+
+        Wandelt das übergebene Domain-Objekt 'Student' in ein entsprechendes
+        ORM-Objekt um. Existiert der Datensatz bereits, wird er aktualisiert,
+        ansonsten wird ein neuer Eintrag angelegt. Auch abhängige Listen
+        (Leistungen, Ziele) werden hierbei synchronisiert.
+        """
         orm = self.session.get(StudentOrm, student.id)
 
         if orm is None:
             orm = StudentOrm(id=student.id)
             self.session.add(orm)
 
+        # Mapping der Basisdaten
         orm.name = student.name
         orm.matrikelnummer = student.matrikelnummer
         orm.studienbeginn = student.studienbeginn
         orm.studiengang_id = student.studiengang.id
+
+        # Erneutes Mapping der Listen, um Änderungen (neue Noten/Ziele) zu erfassen
         orm.leistungen = [
             self._map_domain_to_orm_leistung(leistung_domain)
             for leistung_domain in student.leistungen
@@ -38,6 +59,13 @@ class SqlAlchemyStudentRepository(StudentRepository):
         self.session.commit()
 
     def find_by_id(self, student_id: int) -> Optional[Student]:
+        """
+        Sucht einen Studenten anhand der ID.
+
+        Verwendet 'joinedload', um verknüpfte Daten (Studiengang, Module, Leistungen)
+        effizient in einer Abfrage zu laden (verhindert N+1 Probleme).
+        Gibt None zurück, wenn kein Student gefunden wurde.
+        """
         print(f"Suche Student {student_id} in der PostgreSQL-DB.")
 
         orm = self.session.get(StudentOrm, student_id, options=[
@@ -52,8 +80,11 @@ class SqlAlchemyStudentRepository(StudentRepository):
         return self._map_orm_to_domain_student(orm)
 
     # --- Mapper-Methoden ---
+    # Diese Methoden sind für die interne Umwandlung zwischen der
+    # Datenbank-Repräsentation (ORM) und der Business-Logik (Domain) zuständig.
 
     def _map_orm_to_domain_modul(self, orm: ModulOrm) -> Modul:
+        """Konvertiert ein Modul-ORM-Objekt in ein Domain-Modul."""
         return Modul(
             id=orm.id,
             bezeichnung=orm.bezeichnung,
@@ -63,6 +94,7 @@ class SqlAlchemyStudentRepository(StudentRepository):
         )
 
     def _map_orm_to_domain_studiengang(self, orm: StudiengangOrm) -> Studiengang:
+        """Konvertiert einen Studiengang (inkl. Modulliste) in die Domain-Struktur."""
         return Studiengang(
             id=orm.id,
             bezeichnung=orm.bezeichnung,
@@ -72,6 +104,7 @@ class SqlAlchemyStudentRepository(StudentRepository):
         )
 
     def _map_orm_to_domain_leistung(self, orm: StudienleistungOrm) -> Studienleistung:
+        """Konvertiert eine erbrachte Leistung in die Domain-Struktur."""
         return Studienleistung(
             id=orm.id,
             modul=self._map_orm_to_domain_modul(orm.modul),
@@ -80,6 +113,7 @@ class SqlAlchemyStudentRepository(StudentRepository):
         )
 
     def _map_orm_to_domain_ziel(self, orm: StudienzielOrm) -> Studienziel:
+        """Erkennt den spezifischen Ziel-Typ (Note oder Zeit) und konvertiert entsprechend."""
         if isinstance(orm, NotenzielOrm):
             return Notenziel(id=orm.id, zielnote=orm.zielnote)
         if isinstance(orm, ZeitzielOrm):
@@ -87,6 +121,7 @@ class SqlAlchemyStudentRepository(StudentRepository):
         raise ValueError(f"Unbekannter Ziel-Typ: {orm.type}")
 
     def _map_orm_to_domain_student(self, orm: StudentOrm) -> Student:
+        """Baut das komplette Student-Domain-Objekt aus den ORM-Daten zusammen."""
         return Student(
             id=orm.id,
             name=orm.name,
@@ -98,6 +133,7 @@ class SqlAlchemyStudentRepository(StudentRepository):
         )
 
     def _map_domain_to_orm_ziel(self, domain: Studienziel) -> StudienzielOrm:
+        """Konvertiert ein Domain-Ziel (Note/Zeit) in das entsprechende ORM-Objekt."""
         if isinstance(domain, Notenziel):
             return NotenzielOrm(id=domain.id, zielnote=domain.zielnote)
         if isinstance(domain, Zeitziel):
@@ -105,6 +141,7 @@ class SqlAlchemyStudentRepository(StudentRepository):
         raise ValueError(f"Unbekannter Ziel-Typ: {type(domain)}")
 
     def _map_domain_to_orm_leistung(self, domain: Studienleistung) -> StudienleistungOrm:
+        """Konvertiert eine Domain-Leistung in ein ORM-Objekt für die Speicherung."""
         return StudienleistungOrm(
             id=domain.id,
             note=domain.note,
@@ -114,10 +151,14 @@ class SqlAlchemyStudentRepository(StudentRepository):
 
 def seed_database_sqlalchemy(session: Session):
     """
-    Befüllt die Datenbank mit erweiterten Testdaten:
-    - 6 Module im 1. Semester (alle bestanden)
-    - 6 Module im 2. Semester (alle bestanden)
-    - 4 Module im 3. Semester (2 bestanden, 2 angemeldet)
+    Initialisiert die Datenbank mit Beispieldaten für Entwicklungszwecke.
+
+    Erstellt (falls nicht vorhanden):
+    1. Einen Informatik-Studiengang mit Modulen über 3 Semester.
+    2. Einen Beispiel-Studenten 'Max Mustermann' mit:
+       - Bestandenen Leistungen aus Sem 1 & 2.
+       - Angemeldeten Leistungen im 3. Semester.
+       - Zielen (Notenziel und Zeitziel).
     """
 
     # Prüfen, ob Studiengang existiert

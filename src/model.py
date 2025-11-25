@@ -8,27 +8,37 @@ from typing import List, Optional, Protocol
 
 
 class Pruefungsform(Enum):
+    """Definiert die Art der Prüfungsleistung."""
     KLAUSUR = "Klausur"
     HAUSARBEIT = "Hausarbeit"
 
 
 class ModulStatus(Enum):
+    """Beschreibt den aktuellen Status eines Moduls aus Sicht des Studenten."""
     BESTANDEN = "Bestanden"
     NICHT_BESTANDEN = "Nicht bestanden"
     ANGEMELDET = "Angemeldet"
 
 class Abschluss(Enum):
+    """Mögliche Studienabschlüsse."""
     BSC = "Bachelor of Science"
     MSC = "Master of Science"
 
 class ZielStatus(Enum):
+    """
+    Ampel-System für den Fortschritt eines Studienziels.
+    Erreicht = Grün, In Arbeit/Toleranz = Gelb, Nicht Erreicht/Kritisch = Rot.
+    """
     ERREICHT = "Erreicht"
     NICHT_ERREICHT = "Nicht erreicht"
     IN_ARBEIT = "In Arbeit"
 
 @dataclass(frozen=True)
 class ZielBewertung:
-    """Bündelt alle Daten für ein ausgewertetes Ziel."""
+    """
+    Data Transfer Object (DTO) für die Anzeige von Zielauswertungen.
+    Entkoppelt die Domain-Logik von der Darstellung im UI.
+    """
     beschreibung: str
     logical_status: str
     display_text: str
@@ -36,7 +46,8 @@ class ZielBewertung:
 @dataclass(frozen=True)
 class Studienziel(ABC):
     """
-    Abstrakte Basisklasse für alle Studienziele.
+    Abstrakte Basisklasse für alle Studienziele (Strategy Pattern).
+    Jedes Ziel muss eine Beschreibung liefern und seinen Status selbst auswerten können.
     """
     id: int
 
@@ -53,7 +64,10 @@ class Studienziel(ABC):
 
 @dataclass(frozen=True)
 class Notenziel(Studienziel):
-    """Ein Studienziel, das auf dem Notendurchschnitt basiert."""
+    """
+    Ein Studienziel, das prüft, ob der Notendurchschnitt unter einem bestimmten Wert liegt.
+    Beinhaltet eine Toleranzlogik (Pufferzone).
+    """
 
     zielnote: float
 
@@ -62,6 +76,10 @@ class Notenziel(Studienziel):
         return f"Notenziel (≤ {self.zielnote})"
 
     def werte_status_aus(self, student: Student) -> ZielStatus:
+        """
+        Vergleicht den aktuellen Schnitt mit der Zielnote.
+        Gibt 'In Arbeit' zurück, wenn der Schnitt knapp (innerhalb 0.3) über dem Ziel liegt.
+        """
         durchschnitt = student.berechne_notendurchschnitt()
 
         # Fall 1: Keine Noten vorhanden
@@ -82,7 +100,10 @@ class Notenziel(Studienziel):
 
 @dataclass(frozen=True)
 class Zeitziel(Studienziel):
-    """Ein Studienziel, das auf der Studiendauer basiert."""
+    """
+    Ein Studienziel, das prüft, ob das Studium in der geplanten Zeit abgeschlossen werden kann.
+    Basiert auf einer ECTS-Prognose.
+    """
 
     zieldauer_in_jahren: int
 
@@ -92,7 +113,9 @@ class Zeitziel(Studienziel):
 
     def werte_status_aus(self, student: Student) -> ZielStatus:
         """
-        Wertet das Zeitziel basierend auf einem "Soll-Ist"-Vergleich der ECTS aus.
+        Berechnet, ob der Student basierend auf der bisher verstrichenen Zeit
+        genug ECTS gesammelt hat (Soll-Ist-Vergleich).
+        Erlaubt eine Pufferzone von 15 ECTS Rückstand, bevor auf 'Nicht Erreicht' geschaltet wird.
         """
 
         # 1. Soll-Rate berechnen
@@ -130,6 +153,7 @@ class Zeitziel(Studienziel):
 
 @dataclass
 class Studiengang:
+    """Repräsentiert die Stammdaten eines Studiengangs."""
     id: int
     bezeichnung: str
     gesamtects: int
@@ -138,6 +162,7 @@ class Studiengang:
 
 @dataclass
 class Modul:
+    """Repräsentiert die akademische Definition eines Fachs (ohne Bezug zu einem Studenten)."""
     id: int
     bezeichnung: str
     ects_punkte: int
@@ -147,6 +172,10 @@ class Modul:
 
 @dataclass
 class Studienleistung:
+    """
+    Verknüpft einen Studenten mit einem Modul.
+    Speichert den individuellen Fortschritt (Note, Status).
+    """
     id: int
     modul: Modul
     note: Optional[float]
@@ -155,6 +184,10 @@ class Studienleistung:
 
 @dataclass
 class Student:
+    """
+    Aggregate Root der Domain.
+    Bündelt alle Daten und Logik, die einen Studenten betreffen.
+    """
     id: int
     name: str
     matrikelnummer: int
@@ -164,11 +197,15 @@ class Student:
     ziele: List[Studienziel] = field(default_factory=list)
 
     def _berechne_notendurchschnitt_text(self) -> str:
-        """Private Helper-Methode: Berechnet den Schnitt als String."""
+        """Private Helper-Methode: Formatiert den Schnitt für die Anzeige."""
         durchschnitt = self.berechne_notendurchschnitt()
         return f"{durchschnitt:.1f}" if durchschnitt is not None else "N/A"
 
     def _format_zeitziel_status(self, ziel: Zeitziel) -> str:
+        """
+        Private Helper-Methode für Zeitziele.
+        Erstellt einen detaillierten Text über den ECTS-Fortschritt (Ist vs. Soll).
+        """
         # 1. Konstanten
         tage_gesamt = ziel.zieldauer_in_jahren * 365.25
         gesamtects = self.studiengang.gesamtects
@@ -190,8 +227,9 @@ class Student:
 
     def werte_ziele_aus(self) -> List[ZielBewertung]:
         """
-        Wertet alle Ziele aus und gibt eine Liste von "intelligenten"
-        ZielBewertung-Objekten zurück.
+        Iteriert über alle Ziele des Studenten und transformiert sie in
+        anzeigefreundliche 'ZielBewertung'-Objekte.
+        Kombiniert die logische Auswertung (Ampel) mit spezifischen Texten.
         """
         view_data_list = []
         for ziel in self.ziele:
@@ -226,10 +264,14 @@ class Student:
         return view_data_list
 
     def berechne_gesamt_ects(self) -> int:
+        """Summiert die ECTS-Punkte aller bestandenen Module."""
         return sum(l.modul.ects_punkte for l in self.leistungen if l.status == ModulStatus.BESTANDEN)
 
     def berechne_notendurchschnitt(self) -> float | None:
-        # Berechnet den Notendurchschnitt. Gefiltert nach "Note vorhanden".
+        """
+        Berechnet das arithmetische Mittel aller benoteten Leistungen.
+        Ignoriert Leistungen ohne Note oder reine 'Angemeldet'-Status.
+        """
         relevante_noten = [
             l.note for l in self.leistungen
             if l.note is not None and l.status in (ModulStatus.BESTANDEN, ModulStatus.NICHT_BESTANDEN)
@@ -241,6 +283,10 @@ class Student:
         return sum(relevante_noten) / len(relevante_noten)
 
     def berechne_aktuelles_semester(self) -> int:
+        """
+        Berechnet das aktuelle Fachsemester basierend auf dem Studienbeginn.
+        Geht von 6-monatigen Semestern aus.
+        """
         heute = date.today()
         # Berechne die Differenz in Monaten
         jahre_diff = heute.year - self.studienbeginn.year
@@ -256,7 +302,9 @@ class Student:
 
     def note_eintragen(self, leistung_id: int, note: float):
         """
-        Trägt eine Note für eine Leistung ein und aktualisiert deren Status.
+        Trägt eine Note für eine Leistung ein, validiert den Input und
+        aktualisiert den Modulstatus automatisch auf BESTANDEN oder NICHT_BESTANDEN.
+        Wirft Fehler, wenn die Leistung nicht existiert oder bereits benotet wurde.
         """
 
         # 1. Die richtige Leistung in der Liste finden
@@ -282,7 +330,9 @@ class Student:
 
 class StudentRepository(Protocol):
     """
-    Repository für die Datenbankanbindung für den Studenten
+    Interface (Protocol) für den Datenzugriff.
+    Definiert die Methoden, die eine persistente Speicherung implementieren muss.
+    Dient der Dependency Inversion.
     """
     def save(self, student: Student) -> None: ...
 

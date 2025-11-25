@@ -1,0 +1,1 @@
+# dient dazu, das Verzeichnis als Python-Paket zu kennzeichnen, sodass Python es als solches erkennt und importieren kann.
