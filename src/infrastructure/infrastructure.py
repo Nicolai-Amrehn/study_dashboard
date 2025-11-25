@@ -127,26 +127,26 @@ def seed_database_sqlalchemy(session: Session):
         print("Erstelle Module und Studiengang...")
 
         # --- 1. Semester (6 Kurse) ---
-        m101 = ModulOrm(id=101, bezeichnung="Programmieren 1", ects_punkte=6, semester=1, pruefungsform=Pruefungsform.KLAUSUR)
-        m102 = ModulOrm(id=102, bezeichnung="Mathematik 1 (Analysis)", ects_punkte=8, semester=1, pruefungsform=Pruefungsform.KLAUSUR)
-        m103 = ModulOrm(id=103, bezeichnung="Technische Informatik", ects_punkte=6, semester=1, pruefungsform=Pruefungsform.KLAUSUR)
-        m104 = ModulOrm(id=104, bezeichnung="Theoretische Informatik 1", ects_punkte=6, semester=1, pruefungsform=Pruefungsform.KLAUSUR)
-        m105 = ModulOrm(id=105, bezeichnung="Einführung in die Informatik", ects_punkte=2, semester=1, pruefungsform=Pruefungsform.HAUSARBEIT)
-        m106 = ModulOrm(id=106, bezeichnung="Soft Skills & Englisch", ects_punkte=2, semester=1, pruefungsform=Pruefungsform.HAUSARBEIT)
+        m101 = ModulOrm(id=101, bezeichnung="Programmieren 1", ects_punkte=5, semester=1, pruefungsform=Pruefungsform.KLAUSUR)
+        m102 = ModulOrm(id=102, bezeichnung="Mathematik 1 (Analysis)", ects_punkte=5, semester=1, pruefungsform=Pruefungsform.KLAUSUR)
+        m103 = ModulOrm(id=103, bezeichnung="Technische Informatik", ects_punkte=5, semester=1, pruefungsform=Pruefungsform.KLAUSUR)
+        m104 = ModulOrm(id=104, bezeichnung="Theoretische Informatik 1", ects_punkte=5, semester=1, pruefungsform=Pruefungsform.KLAUSUR)
+        m105 = ModulOrm(id=105, bezeichnung="Einführung in die Informatik", ects_punkte=5, semester=1, pruefungsform=Pruefungsform.HAUSARBEIT)
+        m106 = ModulOrm(id=106, bezeichnung="Soft Skills & Englisch", ects_punkte=5, semester=1, pruefungsform=Pruefungsform.HAUSARBEIT)
 
         # --- 2. Semester (6 Kurse) ---
-        m201 = ModulOrm(id=201, bezeichnung="Programmieren 2", ects_punkte=6, semester=2, pruefungsform=Pruefungsform.KLAUSUR)
-        m202 = ModulOrm(id=202, bezeichnung="Mathematik 2 (Lineare Algebra)", ects_punkte=8, semester=2, pruefungsform=Pruefungsform.KLAUSUR)
-        m203 = ModulOrm(id=203, bezeichnung="Algorithmen & Datenstrukturen", ects_punkte=6, semester=2, pruefungsform=Pruefungsform.KLAUSUR)
-        m204 = ModulOrm(id=204, bezeichnung="Betriebssysteme", ects_punkte=6, semester=2, pruefungsform=Pruefungsform.KLAUSUR)
-        m205 = ModulOrm(id=205, bezeichnung="Rechnernetze", ects_punkte=6, semester=2, pruefungsform=Pruefungsform.KLAUSUR)
-        m206 = ModulOrm(id=206, bezeichnung="Statistik & Wahrscheinlichkeit", ects_punkte=6, semester=2, pruefungsform=Pruefungsform.KLAUSUR)
+        m201 = ModulOrm(id=201, bezeichnung="Programmieren 2", ects_punkte=5, semester=2, pruefungsform=Pruefungsform.KLAUSUR)
+        m202 = ModulOrm(id=202, bezeichnung="Mathematik 2 (Lineare Algebra)", ects_punkte=5, semester=2, pruefungsform=Pruefungsform.KLAUSUR)
+        m203 = ModulOrm(id=203, bezeichnung="Algorithmen & Datenstrukturen", ects_punkte=5, semester=2, pruefungsform=Pruefungsform.KLAUSUR)
+        m204 = ModulOrm(id=204, bezeichnung="Betriebssysteme", ects_punkte=5, semester=2, pruefungsform=Pruefungsform.KLAUSUR)
+        m205 = ModulOrm(id=205, bezeichnung="Rechnernetze", ects_punkte=5, semester=2, pruefungsform=Pruefungsform.KLAUSUR)
+        m206 = ModulOrm(id=206, bezeichnung="Statistik & Wahrscheinlichkeit", ects_punkte=5, semester=2, pruefungsform=Pruefungsform.KLAUSUR)
 
         # --- 3. Semester (4 Kurse) ---
-        m301 = ModulOrm(id=301, bezeichnung="Datenbanken", ects_punkte=6, semester=3, pruefungsform=Pruefungsform.KLAUSUR)
-        m302 = ModulOrm(id=302, bezeichnung="Software Engineering", ects_punkte=6, semester=3, pruefungsform=Pruefungsform.HAUSARBEIT)
-        m303 = ModulOrm(id=303, bezeichnung="Webentwicklung", ects_punkte=6, semester=3, pruefungsform=Pruefungsform.HAUSARBEIT)
-        m304 = ModulOrm(id=304, bezeichnung="Mathematik 3 (Numerik)", ects_punkte=6, semester=3, pruefungsform=Pruefungsform.KLAUSUR)
+        m301 = ModulOrm(id=301, bezeichnung="Datenbanken", ects_punkte=5, semester=3, pruefungsform=Pruefungsform.KLAUSUR)
+        m302 = ModulOrm(id=302, bezeichnung="Software Engineering", ects_punkte=5, semester=3, pruefungsform=Pruefungsform.HAUSARBEIT)
+        m303 = ModulOrm(id=303, bezeichnung="Webentwicklung", ects_punkte=5, semester=3, pruefungsform=Pruefungsform.HAUSARBEIT)
+        m304 = ModulOrm(id=304, bezeichnung="Mathematik 3 (Numerik)", ects_punkte=5, semester=3, pruefungsform=Pruefungsform.KLAUSUR)
 
         module_list = [
             m101, m102, m103, m104, m105, m106,
