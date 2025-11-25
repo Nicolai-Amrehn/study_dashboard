@@ -32,7 +32,7 @@ class DashboardService:
             }
             for z in ziele_view_data
         ]
-        # Semesterübersicht (nur aktuelles Semester)
+        # Semesterübersicht
         semester_daten_map = {i: [] for i in range(1, 7)}
 
         # Füllt die Map mit allen Leistungen
@@ -44,7 +44,7 @@ class DashboardService:
                     "modul": leistung.modul.bezeichnung,
                     "form": leistung.modul.pruefungsform.value,
                     "note": leistung.note,
-                    "status": "bestanden" if leistung.status == ModulStatus.BESTANDEN else "ausstehend"
+                    "status": leistung.status.value
                 })
 
         # Finales View Model

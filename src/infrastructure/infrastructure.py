@@ -186,7 +186,7 @@ def seed_database_sqlalchemy(session: Session):
             studiengang_id=1,
 
             leistungen=[
-                # --- 1. Semester (Alles bestanden) ---
+                # --- 1. Semester ---
                 StudienleistungOrm(id=1, modul_id=101, note=1.3, status=ModulStatus.BESTANDEN),
                 StudienleistungOrm(id=2, modul_id=102, note=2.7, status=ModulStatus.BESTANDEN),
                 StudienleistungOrm(id=3, modul_id=103, note=2.0, status=ModulStatus.BESTANDEN),
@@ -194,7 +194,7 @@ def seed_database_sqlalchemy(session: Session):
                 StudienleistungOrm(id=5, modul_id=105, note=1.0, status=ModulStatus.BESTANDEN),
                 StudienleistungOrm(id=6, modul_id=106, note=1.7, status=ModulStatus.BESTANDEN),
 
-                # --- 2. Semester (Alles bestanden) ---
+                # --- 2. Semester ---
                 StudienleistungOrm(id=7, modul_id=201, note=1.7, status=ModulStatus.BESTANDEN),
                 StudienleistungOrm(id=8, modul_id=202, note=3.0, status=ModulStatus.BESTANDEN),
                 StudienleistungOrm(id=9, modul_id=203, note=2.3, status=ModulStatus.BESTANDEN),
@@ -202,9 +202,9 @@ def seed_database_sqlalchemy(session: Session):
                 StudienleistungOrm(id=11, modul_id=205, note=1.3, status=ModulStatus.BESTANDEN),
                 StudienleistungOrm(id=12, modul_id=206, note=2.7, status=ModulStatus.BESTANDEN),
 
-                # --- 3. Semester (2 Bestanden, 2 Angemeldet) ---
-                StudienleistungOrm(id=13, modul_id=301, note=1.7, status=ModulStatus.BESTANDEN),
-                StudienleistungOrm(id=14, modul_id=302, note=1.0, status=ModulStatus.BESTANDEN),
+                # --- 3. Semester ---
+                StudienleistungOrm(id=13, modul_id=301, note=None, status=ModulStatus.ANGEMELDET),
+                StudienleistungOrm(id=14, modul_id=302, note=None, status=ModulStatus.ANGEMELDET),
                 StudienleistungOrm(id=15, modul_id=303, note=None, status=ModulStatus.ANGEMELDET),
                 StudienleistungOrm(id=16, modul_id=304, note=None, status=ModulStatus.ANGEMELDET),
             ],

@@ -62,11 +62,23 @@ class Notenziel(Studienziel):
         return f"Notenziel (≤ {self.zielnote})"
 
     def werte_status_aus(self, student: Student) -> ZielStatus:
-        bestandene = [l.note for l in student.leistungen if l.status == ModulStatus.BESTANDEN and l.note is not None]
-        if not bestandene:
+        durchschnitt = student.berechne_notendurchschnitt()
+
+        # Fall 1: Keine Noten vorhanden
+        if durchschnitt is None:
             return ZielStatus.IN_ARBEIT
-        durchschnitt = sum(bestandene) / len(bestandene)
-        return ZielStatus.ERREICHT if durchschnitt <= self.zielnote else ZielStatus.NICHT_ERREICHT
+
+        # Fall 2: Ziel erreicht
+        if durchschnitt <= self.zielnote:
+            return ZielStatus.ERREICHT
+
+        # Fall 3: Toleranzbereich (Gelb)
+        toleranz = 0.3
+        if durchschnitt <= (self.zielnote + toleranz):
+            return ZielStatus.IN_ARBEIT
+
+        # Fall 4: Ziel verfehlt (Rot)
+        return ZielStatus.NICHT_ERREICHT
 
 @dataclass(frozen=True)
 class Zeitziel(Studienziel):
@@ -179,24 +191,32 @@ class Student:
     def werte_ziele_aus(self) -> List[ZielBewertung]:
         """
         Wertet alle Ziele aus und gibt eine Liste von "intelligenten"
-        ZielBewertung-Objekten zurück, die alle Template-Daten enthalten.
+        ZielBewertung-Objekten zurück.
         """
         view_data_list = []
         for ziel in self.ziele:
             # 1. Logischen Status für die Ampel holen
             logical_status_enum = ziel.werte_status_aus(self)
-            logical_status_str = logical_status_enum.value  # z.B. "Erreicht"
+            logical_status_str = logical_status_enum.value
 
-            # 2. Anzeigetext holen (die if/elif-Logik ist jetzt HIER)
+            # 2. Anzeigetext holen
             display_text = ""
+
             if isinstance(ziel, Notenziel):
-                display_text = self._berechne_notendurchschnitt_text()
+                # Ist vs. Soll anzeigen + 2 Nachkommastellen
+                schnitt = self.berechne_notendurchschnitt()
+                if schnitt:
+                    # Zeige 2 Nachkommastellen (z.B. 1.94)
+                    display_text = f"Ist: {schnitt:.2f} | Soll: ≤ {ziel.zielnote}"
+                else:
+                    display_text = "Noch keine Noten"
+
             elif isinstance(ziel, Zeitziel):
                 display_text = self._format_zeitziel_status(ziel)
             else:
-                display_text = logical_status_str  # Fallback
+                display_text = logical_status_str
 
-            # 3. "Intelligentes" ZielBewertung-Objekt erstellen
+            # 3. Objekt erstellen
             view_data_list.append(ZielBewertung(
                 beschreibung=ziel.beschreibung,
                 logical_status=logical_status_str,
@@ -209,10 +229,16 @@ class Student:
         return sum(l.modul.ects_punkte for l in self.leistungen if l.status == ModulStatus.BESTANDEN)
 
     def berechne_notendurchschnitt(self) -> float | None:
-        bestandene = [l.note for l in self.leistungen if l.status == ModulStatus.BESTANDEN and l.note is not None]
-        if not bestandene:
+        # Berechnet den Notendurchschnitt. Gefiltert nach "Note vorhanden".
+        relevante_noten = [
+            l.note for l in self.leistungen
+            if l.note is not None and l.status in (ModulStatus.BESTANDEN, ModulStatus.NICHT_BESTANDEN)
+        ]
+
+        if not relevante_noten:
             return None
-        return sum(bestandene) / len(bestandene)
+
+        return sum(relevante_noten) / len(relevante_noten)
 
     def berechne_aktuelles_semester(self) -> int:
         heute = date.today()

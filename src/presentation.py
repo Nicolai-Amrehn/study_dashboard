@@ -31,6 +31,8 @@ class DashboardController:
         
         @dashboard_bp.route('/student/<int:student_id>/leistung/<int:leistung_id>/note_eintragen', methods=['POST'])
         def note_eintragen(student_id, leistung_id):
+            semester = request.form.get('semester')
+
             try:
                 # 1. Daten aus dem Formular holen
                 note_str = request.form.get('note')
