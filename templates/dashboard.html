@@ -41,21 +41,36 @@
                     <ul class="list-group list-group-flush">
 
                         {% for ziel in student_data.ziele %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="fw-bold">{{ ziel.beschreibung }}</span>
 
-                                <span>{{ ziel.beschreibung }}</span>
-
-                                <span>
-                                    {% set badge_color = 'bg-secondary' %} {% if ziel.logical_status == 'Erreicht' %}
-                                        {% set badge_color = 'bg-success' %} {% elif ziel.logical_status == 'Nicht erreicht' %}
-                                        {% set badge_color = 'bg-danger' %} {% elif ziel.logical_status == 'In Arbeit' %}
-                                        {% set badge_color = 'bg-warning text-dark' %} {% endif %}
+                                    {% set badge_color = 'bg-secondary' %}
+                                    {% if ziel.logical_status == 'Erreicht' %}
+                                        {% set badge_color = 'bg-success' %}
+                                    {% elif ziel.logical_status == 'Nicht erreicht' %}
+                                        {% set badge_color = 'bg-danger' %}
+                                    {% elif ziel.logical_status == 'In Arbeit' %}
+                                        {% set badge_color = 'bg-warning text-dark' %}
+                                    {% endif %}
 
                                     <span class="badge {{ badge_color }} rounded-pill">
-                                        {{ ziel.display_text }}
+                                        {{ ziel.logical_status }}
                                     </span>
-                                </span>
+                                </div>
 
+                                <div class="text-muted small">
+                                    {{ ziel.display_text }}
+                                </div>
+
+                                {% if "Soll" in ziel.display_text %}
+                                    <div class="progress mt-2" style="height: 5px;">
+                                        <div class="progress-bar {{ badge_color }}" role="progressbar" style="width: 100%"></div>
+                                    </div>
+                                    <small class="text-secondary fst-italic" style="font-size: 0.75rem;">
+                                        Vergleich deiner aktuellen ECTS mit dem Studienablaufplan.
+                                    </small>
+                                {% endif %}
                             </li>
                         {% endfor %}
                     </ul>
