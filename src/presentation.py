@@ -65,7 +65,6 @@ class DashboardController:
                 note_str = request.form.get('note')
                 if not note_str:
                     flash("Keine Note angegeben.", "danger")
-                    # Korrektur: Der Blueprint-Name ist 'dashboard', daher 'dashboard.get_dashboard'
                     return redirect(url_for('dashboard.get_dashboard'))
 
                 # Komma (deutsch) zu Punkt (technisch) umwandeln für Float

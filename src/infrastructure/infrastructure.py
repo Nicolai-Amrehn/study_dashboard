@@ -66,7 +66,7 @@ class SqlAlchemyStudentRepository(StudentRepository):
         effizient in einer Abfrage zu laden (verhindert N+1 Probleme).
         Gibt None zurück, wenn kein Student gefunden wurde.
         """
-        print(f"Suche Student {student_id} in der PostgreSQL-DB.")
+        print(f"Suche Student {student_id} in der Datenbank.")
 
         orm = self.session.get(StudentOrm, student_id, options=[
             joinedload(StudentOrm.studiengang).joinedload(StudiengangOrm.module),
