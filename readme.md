@@ -6,7 +6,7 @@
 ### Schritte automatisches Setup Windows:
 1. start_project.bat öffnen
 
-2. Browser öffnen unter: http://127.0.0.1:5000/dashboard
+2. Browser öffnen unter: http://127.0.0.1:5000
 
 ### Schritte manuelles Setup Windows:
 
@@ -26,4 +26,4 @@
 5. Anwendung starten:
    python app.py
 
-6. Browser öffnen unter: http://127.0.0.1:5000/dashboard
+6. Browser öffnen unter: http://127.0.0.1:5000
