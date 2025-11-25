@@ -1,6 +1,7 @@
 # Installationsanleitung
 ### Voraussetzungen:
 - Python installiert und im PATH.
+- Repository geklont oder aus Zip-Datei extrahiert.
 
 ### Schritte automatisches Setup Windows:
 1. start_project.bat öffnen
@@ -10,9 +11,9 @@
 ### Schritte manuelles Setup Windows:
 
 1. Eingabeaufforderung (CMD) oder PowerShell öffnen und in den Projektordner wechseln:
-   cd pfad\zu\nicolai-amrehn-study_dashboard
+   cd pfad\zu\study_dashboard
 
-2. Eine virtuelle Umgebung erstellen, um Systemkonflikte zu vermeiden:
+2. Virtuelle Umgebung erstellen:
    python -m venv venv
 
 3. Umgebung aktivieren
