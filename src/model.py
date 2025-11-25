@@ -157,20 +157,26 @@ class Student:
         return f"{durchschnitt:.1f}" if durchschnitt is not None else "N/A"
 
     def _format_zeitziel_status(self, ziel: Zeitziel) -> str:
-        """Private Helper-Methode: Berechnet den Zeitziel-Status als String."""
-        tage_im_studium = (date.today() - self.studienbeginn).days
+        # 1. Konstanten
         tage_gesamt = ziel.zieldauer_in_jahren * 365.25
-        tage_verbleibend = tage_gesamt - tage_im_studium
+        gesamtects = self.studiengang.gesamtects
 
-        prozent_verbraucht = 0
+        # 2. Zeit vergangen
+        tage_im_studium = (date.today() - self.studienbeginn).days
+
+        # 3. Berechnung des "Soll-Standes"
+        # Wenn wir 180 ECTS in 1095 Tagen schaffen müssen, wie viel ECTS pro Tag?
         if tage_gesamt > 0:
-            prozent_verbraucht = (tage_im_studium / tage_gesamt) * 100
+            soll_ects = (gesamtects / tage_gesamt) * tage_im_studium
+        else:
+            soll_ects = 0
 
-        monate_verbleibend = 0
-        if tage_verbleibend > 0:
-            monate_verbleibend = tage_verbleibend / 30.44
+        # 4. Ist-Stand
+        ist_ects = self.berechne_gesamt_ects()
 
-        return f"{100 - prozent_verbraucht:.0f}% verbleibend ({monate_verbleibend:.0f} Monate)"
+        # 5. Formatierung für die Anzeige
+        # int() schneidet Kommastellen ab, das reicht für die Übersicht
+        return f"Ist: {ist_ects} ECTS | Soll: {int(soll_ects)} ECTS"
 
     def werte_ziele_aus(self) -> List[ZielBewertung]:
         """
@@ -211,12 +217,22 @@ class Student:
         return sum(bestandene) / len(bestandene)
 
     def berechne_aktuelles_semester(self) -> int:
-        return int(sum(l.modul.ects_punkte for l in self.leistungen if l.status == ModulStatus.BESTANDEN)/30)
+        heute = date.today()
+        # Berechne die Differenz in Monaten
+        jahre_diff = heute.year - self.studienbeginn.year
+        monate_diff = heute.month - self.studienbeginn.month
+
+        gesamt_monate = (jahre_diff * 12) + monate_diff
+
+        # Ein Semester dauert 6 Monate.
+        # +1, da man im 0. Monat bereits im 1. Semester ist.
+        semester = (gesamt_monate // 6) + 1
+
+        return semester
 
     def note_eintragen(self, leistung_id: int, note: float):
         """
         Trägt eine Note für eine Leistung ein und aktualisiert deren Status.
-        Hier sitzt die Geschäftslogik.
         """
 
         # 1. Die richtige Leistung in der Liste finden
@@ -241,6 +257,9 @@ class Student:
             leistung.status = ModulStatus.NICHT_BESTANDEN
 
 class StudentRepository(Protocol):
+    """
+    Repository für die Datenbankanbindung für den Studenten
+    """
     def save(self, student: Student) -> None: ...
 
     def find_by_id(self, student_id: int) -> Optional[Student]: ...
