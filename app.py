@@ -17,8 +17,7 @@ def create_app() -> Flask:
     Factory-Funktion zur Erstellung der Flask-App.
     """
     app = Flask(__name__)
-
-    # 1. Absoluten Pfad zur DB-Datei erzwingen
+    app.secret_key = "prototypischer_entwicklungsschluessel"
     basedir = os.path.abspath(os.path.dirname(__file__))
     db_path = os.path.join(basedir, "student_db.sqlite")
 
