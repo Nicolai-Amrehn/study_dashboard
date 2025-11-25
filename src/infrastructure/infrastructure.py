@@ -114,27 +114,45 @@ class SqlAlchemyStudentRepository(StudentRepository):
 
 def seed_database_sqlalchemy(session: Session):
     """
-    Befüllt die Datenbank mit Seeding-Daten.
+    Befüllt die Datenbank mit erweiterten Testdaten:
+    - 6 Module im 1. Semester (alle bestanden)
+    - 6 Module im 2. Semester (alle bestanden)
+    - 4 Module im 3. Semester (2 bestanden, 2 angemeldet)
     """
 
+    # Prüfen, ob Studiengang existiert
     studiengang_check = session.get(StudiengangOrm, 1)
 
     if not studiengang_check:
+        print("Erstelle Module und Studiengang...")
 
-        modul_prog1 = ModulOrm(id=101, bezeichnung="Programmieren 1", ects_punkte=6, semester=1,
-                               pruefungsform=Pruefungsform.KLAUSUR)
-        modul_mathe1 = ModulOrm(id=102, bezeichnung="Mathematik 1", ects_punkte=8, semester=1,
-                                pruefungsform=Pruefungsform.KLAUSUR)
-        modul_webdev = ModulOrm(id=201, bezeichnung="Webentwicklung", ects_punkte=6, semester=2,
-                                pruefungsform=Pruefungsform.HAUSARBEIT)
-        modul_prog2 = ModulOrm(id=202, bezeichnung="Programmierung 2", ects_punkte=6, semester=3,
-                               pruefungsform=Pruefungsform.KLAUSUR)
-        modul_db = ModulOrm(id=203, bezeichnung="Datenbanken", ects_punkte=6, semester=3,
-                            pruefungsform=Pruefungsform.HAUSARBEIT)
-        modul_mathe3 = ModulOrm(id=301, bezeichnung="Mathe 3", ects_punkte=8, semester=3,
-                                pruefungsform=Pruefungsform.KLAUSUR)
+        # --- 1. Semester (6 Kurse) ---
+        m101 = ModulOrm(id=101, bezeichnung="Programmieren 1", ects_punkte=6, semester=1, pruefungsform=Pruefungsform.KLAUSUR)
+        m102 = ModulOrm(id=102, bezeichnung="Mathematik 1 (Analysis)", ects_punkte=8, semester=1, pruefungsform=Pruefungsform.KLAUSUR)
+        m103 = ModulOrm(id=103, bezeichnung="Technische Informatik", ects_punkte=6, semester=1, pruefungsform=Pruefungsform.KLAUSUR)
+        m104 = ModulOrm(id=104, bezeichnung="Theoretische Informatik 1", ects_punkte=6, semester=1, pruefungsform=Pruefungsform.KLAUSUR)
+        m105 = ModulOrm(id=105, bezeichnung="Einführung in die Informatik", ects_punkte=2, semester=1, pruefungsform=Pruefungsform.HAUSARBEIT)
+        m106 = ModulOrm(id=106, bezeichnung="Soft Skills & Englisch", ects_punkte=2, semester=1, pruefungsform=Pruefungsform.HAUSARBEIT)
 
-        module_list = [modul_prog1, modul_mathe1, modul_webdev, modul_prog2, modul_db, modul_mathe3]
+        # --- 2. Semester (6 Kurse) ---
+        m201 = ModulOrm(id=201, bezeichnung="Programmieren 2", ects_punkte=6, semester=2, pruefungsform=Pruefungsform.KLAUSUR)
+        m202 = ModulOrm(id=202, bezeichnung="Mathematik 2 (Lineare Algebra)", ects_punkte=8, semester=2, pruefungsform=Pruefungsform.KLAUSUR)
+        m203 = ModulOrm(id=203, bezeichnung="Algorithmen & Datenstrukturen", ects_punkte=6, semester=2, pruefungsform=Pruefungsform.KLAUSUR)
+        m204 = ModulOrm(id=204, bezeichnung="Betriebssysteme", ects_punkte=6, semester=2, pruefungsform=Pruefungsform.KLAUSUR)
+        m205 = ModulOrm(id=205, bezeichnung="Rechnernetze", ects_punkte=6, semester=2, pruefungsform=Pruefungsform.KLAUSUR)
+        m206 = ModulOrm(id=206, bezeichnung="Statistik & Wahrscheinlichkeit", ects_punkte=6, semester=2, pruefungsform=Pruefungsform.KLAUSUR)
+
+        # --- 3. Semester (4 Kurse) ---
+        m301 = ModulOrm(id=301, bezeichnung="Datenbanken", ects_punkte=6, semester=3, pruefungsform=Pruefungsform.KLAUSUR)
+        m302 = ModulOrm(id=302, bezeichnung="Software Engineering", ects_punkte=6, semester=3, pruefungsform=Pruefungsform.HAUSARBEIT)
+        m303 = ModulOrm(id=303, bezeichnung="Webentwicklung", ects_punkte=6, semester=3, pruefungsform=Pruefungsform.HAUSARBEIT)
+        m304 = ModulOrm(id=304, bezeichnung="Mathematik 3 (Numerik)", ects_punkte=6, semester=3, pruefungsform=Pruefungsform.KLAUSUR)
+
+        module_list = [
+            m101, m102, m103, m104, m105, m106,
+            m201, m202, m203, m204, m205, m206,
+            m301, m302, m303, m304
+        ]
         session.add_all(module_list)
 
         studiengang_info = StudiengangOrm(
@@ -146,16 +164,19 @@ def seed_database_sqlalchemy(session: Session):
         )
         session.add(studiengang_info)
     else:
-        print("Bereits Seeding-Daten vorhanden.")
+        print("Bereits Seeding-Daten für Studiengang vorhanden.")
 
+    # Prüfen, ob Student existiert
     student_check = session.get(StudentOrm, 1)
 
     if not student_check:
+        print("Erstelle Student Max Mustermann...")
 
-        ziel_note = NotenzielOrm(id=1, zielnote=2.0)
+        ziel_note = NotenzielOrm(id=1, zielnote=1.9)
         ziel_zeit = ZeitzielOrm(id=2, zieldauer_in_jahren=3)
 
-        start_datum = date(date.today().year - 1, date.today().month - 2, 1)
+        # Studienbeginn vor ca. 1 Jahr (damit er jetzt im 3. Sem ist)
+        start_datum = date(date.today().year - 1, 10, 1)
 
         student_max = StudentOrm(
             id=1,
@@ -165,12 +186,27 @@ def seed_database_sqlalchemy(session: Session):
             studiengang_id=1,
 
             leistungen=[
-                StudienleistungOrm(id=1, modul_id=202, note=1.7, status=ModulStatus.BESTANDEN),
-                StudienleistungOrm(id=2, modul_id=203, note=2.0, status=ModulStatus.BESTANDEN),
-                StudienleistungOrm(id=3, modul_id=301, note=None, status=ModulStatus.ANGEMELDET),
-                StudienleistungOrm(id=4, modul_id=101, note=2.3, status=ModulStatus.BESTANDEN),
-                StudienleistungOrm(id=5, modul_id=102, note=3.0, status=ModulStatus.BESTANDEN),
-                StudienleistungOrm(id=6, modul_id=201, note=1.3, status=ModulStatus.BESTANDEN),
+                # --- 1. Semester (Alles bestanden) ---
+                StudienleistungOrm(id=1, modul_id=101, note=1.3, status=ModulStatus.BESTANDEN),
+                StudienleistungOrm(id=2, modul_id=102, note=2.7, status=ModulStatus.BESTANDEN),
+                StudienleistungOrm(id=3, modul_id=103, note=2.0, status=ModulStatus.BESTANDEN),
+                StudienleistungOrm(id=4, modul_id=104, note=3.3, status=ModulStatus.BESTANDEN),
+                StudienleistungOrm(id=5, modul_id=105, note=1.0, status=ModulStatus.BESTANDEN),
+                StudienleistungOrm(id=6, modul_id=106, note=1.7, status=ModulStatus.BESTANDEN),
+
+                # --- 2. Semester (Alles bestanden) ---
+                StudienleistungOrm(id=7, modul_id=201, note=1.7, status=ModulStatus.BESTANDEN),
+                StudienleistungOrm(id=8, modul_id=202, note=3.0, status=ModulStatus.BESTANDEN),
+                StudienleistungOrm(id=9, modul_id=203, note=2.3, status=ModulStatus.BESTANDEN),
+                StudienleistungOrm(id=10, modul_id=204, note=2.0, status=ModulStatus.BESTANDEN),
+                StudienleistungOrm(id=11, modul_id=205, note=1.3, status=ModulStatus.BESTANDEN),
+                StudienleistungOrm(id=12, modul_id=206, note=2.7, status=ModulStatus.BESTANDEN),
+
+                # --- 3. Semester (2 Bestanden, 2 Angemeldet) ---
+                StudienleistungOrm(id=13, modul_id=301, note=1.7, status=ModulStatus.BESTANDEN),
+                StudienleistungOrm(id=14, modul_id=302, note=1.0, status=ModulStatus.BESTANDEN),
+                StudienleistungOrm(id=15, modul_id=303, note=None, status=ModulStatus.ANGEMELDET),
+                StudienleistungOrm(id=16, modul_id=304, note=None, status=ModulStatus.ANGEMELDET),
             ],
 
             ziele=[ziel_note, ziel_zeit]
