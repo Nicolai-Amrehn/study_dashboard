@@ -52,6 +52,6 @@ class DashboardController:
             except Exception as e:
                 flash(f"Ein Fehler ist aufgetreten: {e}", "danger")
 
-            return redirect(url_for('dashboard.dashboard', semester=semester))
+            return redirect(url_for('dashboard.get_dashboard', semester=semester))
 
         return dashboard_bp
