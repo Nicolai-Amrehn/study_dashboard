@@ -164,8 +164,7 @@ class Student:
         # 2. Zeit vergangen
         tage_im_studium = (date.today() - self.studienbeginn).days
 
-        # 3. Berechnung des "Soll-Standes"
-        # Wenn wir 180 ECTS in 1095 Tagen schaffen müssen, wie viel ECTS pro Tag?
+        # 3. Berechnung des "Soll-Standes" auf Tage gerechnet
         if tage_gesamt > 0:
             soll_ects = (gesamtects / tage_gesamt) * tage_im_studium
         else:
@@ -175,7 +174,6 @@ class Student:
         ist_ects = self.berechne_gesamt_ects()
 
         # 5. Formatierung für die Anzeige
-        # int() schneidet Kommastellen ab, das reicht für die Übersicht
         return f"Ist: {ist_ects} ECTS | Soll: {int(soll_ects)} ECTS"
 
     def werte_ziele_aus(self) -> List[ZielBewertung]:
